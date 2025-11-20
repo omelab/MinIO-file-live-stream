@@ -48,7 +48,7 @@ class PresignedUploadRequestDto {
   contentType?: string;
 }
 
-@ApiTags('file-upload')
+@ApiTags('File Management')
 @Controller('files')
 export class FileUploadController {
   constructor(private readonly fileUploadService: FileUploadService) {}
@@ -139,20 +139,6 @@ export class FileUploadController {
     return { url };
   }
 
-  @Delete(':key')
-  @ApiOperation({ summary: 'Delete a file' })
-  @ApiParam({ name: 'key', description: 'File key' })
-  @ApiResponse({
-    status: 200,
-    description: 'File deleted successfully',
-    type: DeleteResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'File deletion failed' })
-  async deleteFile(@Param('key') key: string): Promise<DeleteResponseDto> {
-    await this.fileUploadService.deleteFile(key);
-    return { message: 'File deleted successfully' };
-  }
-
   @Get('download/:key')
   @ApiOperation({ summary: 'Generate download URL for file' })
   @ApiParam({ name: 'key', description: 'File key' })
@@ -203,5 +189,19 @@ export class FileUploadController {
     } catch (error) {
       throw new BadRequestException(`File not found: ${error.message}`);
     }
+  }
+
+  @Delete(':key')
+  @ApiOperation({ summary: 'Delete a file' })
+  @ApiParam({ name: 'key', description: 'File key' })
+  @ApiResponse({
+    status: 200,
+    description: 'File deleted successfully',
+    type: DeleteResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'File deletion failed' })
+  async deleteFile(@Param('key') key: string): Promise<DeleteResponseDto> {
+    await this.fileUploadService.deleteFile(key);
+    return { message: 'File deleted successfully' };
   }
 }

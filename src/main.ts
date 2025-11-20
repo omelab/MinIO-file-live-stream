@@ -1,24 +1,38 @@
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe());
 
   // Swagger configuration
-  const config = new DocumentBuilder()
-    .setTitle('File Upload API')
-    .setDescription('API for file upload with MinIO')
-    .setVersion('1.0')
-    .addTag('file-upload')
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle(configService.get<string>('APP_NAME') || 'API Documentation')
+    .setDescription(
+      configService.get<string>('APP_DESCRIPTION') || 'API description',
+    )
+    .setVersion(configService.get<string>('APP_VERSION') || '1.0')
+    // .addTag('auth', 'Authentication endpoints')
+    // .addTag('users', 'User management endpoints')
+    // .addTag('file-upload', 'File upload endpoints')
+    .addBearerAuth()
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
 
   // Enable CORS if needed
   app.enableCors();
