@@ -18,7 +18,7 @@ import { Product } from '../../products/models/product.model';
 export class DailyStockSummary extends Model {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare id: number;
 
   @Column(DataType.DATE)
@@ -27,11 +27,11 @@ export class DailyStockSummary extends Model {
   @Column(DataType.STRING(20))
   declare locationType: string;
 
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare locationId: number;
 
   @ForeignKey(() => Product)
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare productId: number;
 
   @Column({

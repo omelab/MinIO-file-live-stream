@@ -26,7 +26,7 @@ interface ProductCreationAttributes {
 export class Product extends Model<Product, ProductCreationAttributes> {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare productId: number;
 
   @Column({

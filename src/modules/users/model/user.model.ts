@@ -38,7 +38,7 @@ interface UserCreationAttributes {
 export class User extends Model<User, UserCreationAttributes> {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare id: number;
 
   // Remove @Index decorator

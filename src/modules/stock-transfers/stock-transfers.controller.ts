@@ -17,11 +17,55 @@ import {
 } from './dto/create-stock-transfer.dto';
 import { StockTransfersService } from './stock-transfers.service';
 
-@ApiTags('Stock Transfers Management')
-@ApiBearerAuth('access-token')
+@ApiTags('Stock Transfers')
+@ApiBearerAuth()
 @Controller('stock-transfers')
 export class StockTransfersController {
   constructor(private readonly stockTransfersService: StockTransfersService) {}
+
+  @Post('dh-to-dh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Transfer stock between distribution houses' })
+  @ApiResponse({ status: 200, description: 'Transfer completed successfully' })
+  @ApiResponse({
+    status: 404,
+    description: 'Distribution house or product not found',
+  })
+  @ApiResponse({ status: 400, description: 'Insufficient stock' })
+  async transferDhToDh(
+    @Body() transferDto: CreateDhToDhTransferDto,
+  ): Promise<{ message: string; transferId: number }> {
+    return await this.stockTransfersService.transferDhToDh(transferDto);
+  }
+
+  @Post('dh-to-wh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Transfer stock from distribution house to warehouse',
+  })
+  @ApiResponse({ status: 200, description: 'Transfer completed successfully' })
+  @ApiResponse({
+    status: 404,
+    description: 'Distribution house, warehouse or product not found',
+  })
+  @ApiResponse({ status: 400, description: 'Insufficient stock' })
+  async transferDhToWh(
+    @Body() transferDto: CreateDhToWhTransferDto,
+  ): Promise<{ message: string; transferId: number }> {
+    return await this.stockTransfersService.transferDhToWh(transferDto);
+  }
+
+  @Post('wh-to-wh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Transfer stock between warehouses' })
+  @ApiResponse({ status: 200, description: 'Transfer completed successfully' })
+  @ApiResponse({ status: 404, description: 'Warehouse or product not found' })
+  @ApiResponse({ status: 400, description: 'Insufficient stock' })
+  async transferWhToWh(
+    @Body() transferDto: CreateWhToWhTransferDto,
+  ): Promise<{ message: string; transferId: number }> {
+    return await this.stockTransfersService.transferWhToWh(transferDto);
+  }
 
   @Post('production-to-dh')
   @HttpCode(HttpStatus.OK)
@@ -38,7 +82,7 @@ export class StockTransfersController {
   async productionToDistributionHouse(
     @Body() transferDto: ProductionToDhTransferDto,
   ): Promise<{ message: string; transferId: number }> {
-    return this.stockTransfersService.productionToDistributionHouse(
+    return await this.stockTransfersService.productionToDistributionHouse(
       transferDto,
     );
   }
@@ -58,51 +102,9 @@ export class StockTransfersController {
   async purchaseToDistributionHouse(
     @Body() transferDto: PurchaseToDhTransferDto,
   ): Promise<{ message: string; transferId: number }> {
-    return this.stockTransfersService.purchaseToDistributionHouse(transferDto);
-  }
-
-  @Post('dh-to-dh')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Transfer stock between distribution houses' })
-  @ApiResponse({ status: 200, description: 'Transfer completed successfully' })
-  @ApiResponse({
-    status: 404,
-    description: 'Distribution house or product not found',
-  })
-  @ApiResponse({ status: 400, description: 'Insufficient stock' })
-  async transferDhToDh(
-    @Body() transferDto: CreateDhToDhTransferDto,
-  ): Promise<{ message: string; transferId: number }> {
-    return this.stockTransfersService.transferDhToDh(transferDto);
-  }
-
-  @Post('dh-to-wh')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Transfer stock from distribution house to warehouse',
-  })
-  @ApiResponse({ status: 200, description: 'Transfer completed successfully' })
-  @ApiResponse({
-    status: 404,
-    description: 'Distribution house, warehouse or product not found',
-  })
-  @ApiResponse({ status: 400, description: 'Insufficient stock' })
-  async transferDhToWh(
-    @Body() transferDto: CreateDhToWhTransferDto,
-  ): Promise<{ message: string; transferId: number }> {
-    return this.stockTransfersService.transferDhToWh(transferDto);
-  }
-
-  @Post('wh-to-wh')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Transfer stock between warehouses' })
-  @ApiResponse({ status: 200, description: 'Transfer completed successfully' })
-  @ApiResponse({ status: 404, description: 'Warehouse or product not found' })
-  @ApiResponse({ status: 400, description: 'Insufficient stock' })
-  async transferWhToWh(
-    @Body() transferDto: CreateWhToWhTransferDto,
-  ): Promise<{ message: string; transferId: number }> {
-    return this.stockTransfersService.transferWhToWh(transferDto);
+    return await this.stockTransfersService.purchaseToDistributionHouse(
+      transferDto,
+    );
   }
 
   @Post('sale-from-warehouse')
@@ -114,7 +116,7 @@ export class StockTransfersController {
   async saleFromWarehouse(
     @Body() saleDto: SaleFromWarehouseDto,
   ): Promise<{ message: string; saleId: number }> {
-    return this.stockTransfersService.saleFromWarehouse(saleDto);
+    return await this.stockTransfersService.saleFromWarehouse(saleDto);
   }
 
   @Post('customer-return-to-warehouse')
@@ -129,7 +131,9 @@ export class StockTransfersController {
   async customerReturnToWarehouse(
     @Body() returnDto: CustomerReturnToWarehouseDto,
   ): Promise<{ message: string; returnId: number }> {
-    return this.stockTransfersService.customerReturnToWarehouse(returnDto);
+    return await this.stockTransfersService.customerReturnToWarehouse(
+      returnDto,
+    );
   }
 
   @Post('wh-to-dh-return')
@@ -146,7 +150,7 @@ export class StockTransfersController {
   async warehouseToDistributionHouseReturn(
     @Body() returnDto: WarehouseToDhReturnDto,
   ): Promise<{ message: string; returnId: number }> {
-    return this.stockTransfersService.warehouseToDistributionHouseReturn(
+    return await this.stockTransfersService.warehouseToDistributionHouseReturn(
       returnDto,
     );
   }

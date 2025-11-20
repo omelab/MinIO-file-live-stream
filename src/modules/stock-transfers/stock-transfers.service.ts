@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
+import Decimal from 'decimal.js';
 import { Sequelize, Transaction } from 'sequelize';
-
 import { DistributionHouse } from '../distribution-houses/models/distribution-house.model';
 import { Product } from '../products/models/product.model';
 import { DistributionHouseStockLog } from '../stock-logs/models/distribution-house-stock-log.model';
@@ -189,7 +189,6 @@ export class StockTransfersService {
   async transferWhToWh(
     transferDto: CreateWhToWhTransferDto,
   ): Promise<{ message: string; transferId: number }> {
-    // Check if sequelize exists
     if (!this.whStockLogModel.sequelize) {
       throw new InternalServerErrorException(
         'Database connection not available',
@@ -197,9 +196,10 @@ export class StockTransfersService {
     }
 
     const transaction = await this.whStockLogModel.sequelize.transaction();
+    const transferId: number = Date.now();
 
     try {
-      // Validate entities exist
+      // 1. Validate warehouses and transport
       await this.validateTransferEntities({
         fromDhId: undefined,
         toDhId: undefined,
@@ -209,7 +209,7 @@ export class StockTransfersService {
         transaction,
       });
 
-      // Validate products exist and have sufficient stock
+      // 2. Validate products exist and stock is sufficient
       await this.validateProductsAndStock({
         locationId: transferDto.fromWarehouseId,
         locationType: 'warehouse',
@@ -217,16 +217,15 @@ export class StockTransfersService {
         transaction,
       });
 
-      const transferId = Date.now();
-
+      // 3. Loop through items and update stock
       for (const item of transferDto.items) {
-        // Update FROM warehouse (stock out)
+        // FROM warehouse: stock out
         await this.updateWarehouseStock({
           warehouseId: transferDto.fromWarehouseId,
           productId: item.productId,
           date: transferDto.transferDate,
-          stockIn: 0, // stock in
-          stockOut: item.quantity, // stock out
+          stockIn: 0,
+          stockOut: item.quantity,
           referenceType: 'WH_to_WH_Transfer_Out',
           referenceId: transferId,
           transportId: transferDto.transportId,
@@ -235,13 +234,13 @@ export class StockTransfersService {
           transaction,
         });
 
-        // Update TO warehouse (stock in)
+        // TO warehouse: stock in
         await this.updateWarehouseStock({
           warehouseId: transferDto.toWarehouseId,
           productId: item.productId,
           date: transferDto.transferDate,
-          stockIn: item.quantity, // stock in
-          stockOut: 0, // stock out
+          stockIn: item.quantity,
+          stockOut: 0,
           referenceType: 'WH_to_WH_Transfer_In',
           referenceId: transferId,
           transportId: transferDto.transportId,
@@ -252,6 +251,7 @@ export class StockTransfersService {
       }
 
       await transaction.commit();
+
       return {
         message: 'Warehouse to warehouse transfer completed successfully',
         transferId,
@@ -415,41 +415,45 @@ export class StockTransfersService {
     createdBy: number;
     transaction: Transaction;
   }): Promise<void> {
-    // Get latest stock for this product at this distribution house
+    const { transaction } = params;
+
+    // 1. Get the latest stock record (true order)
     const latestStock = await this.dhStockLogModel.findOne({
       where: {
         distributionHouseId: params.distributionHouseId,
         productId: params.productId,
       },
-      order: [
-        ['date', 'DESC'],
-        ['createdAt', 'DESC'],
-      ],
-      transaction: params.transaction,
+      order: [['id', 'DESC']], // Prevent floating error and wrong order
+      transaction,
     });
 
-    const openingStock = latestStock ? latestStock.closingStock : 0;
-    const closingStock = openingStock + params.stockIn - params.stockOut;
+    // 2. Convert values using Decimal
+    const openingStock = new Decimal(latestStock?.closingStock ?? 0);
+    const stockIn = new Decimal(params.stockIn);
+    const stockOut = new Decimal(params.stockOut);
 
+    // 3. Perfect precision calculation
+    const closingStock = openingStock.plus(stockIn).minus(stockOut);
+
+    // 4. Insert new row
     await this.dhStockLogModel.create(
       {
         distributionHouseId: params.distributionHouseId,
-        date: params.date,
         productId: params.productId,
-        openingStock,
-        stockIn: params.stockIn,
-        stockOut: params.stockOut,
-        closingStock,
+        date: params.date,
+        openingStock: openingStock.toNumber(),
+        stockIn: stockIn.toNumber(),
+        stockOut: stockOut.toNumber(),
+        closingStock: closingStock.toNumber(),
         referenceType: params.referenceType,
         referenceId: params.referenceId,
         transportId: params.transportId,
         notes: params.notes,
         createdBy: params.createdBy,
       },
-      { transaction: params.transaction },
+      { transaction },
     );
   }
-
   private async updateWarehouseStock(params: {
     warehouseId: number;
     productId: number;
@@ -463,38 +467,43 @@ export class StockTransfersService {
     createdBy: number;
     transaction: Transaction;
   }): Promise<void> {
-    // Get latest stock for this product at this warehouse
+    const { transaction } = params;
+
+    // 1. Fetch the latest stock entry (true latest, by insertion order)
     const latestStock = await this.whStockLogModel.findOne({
       where: {
         warehouseId: params.warehouseId,
         productId: params.productId,
       },
-      order: [
-        ['date', 'DESC'],
-        ['createdAt', 'DESC'],
-      ],
-      transaction: params.transaction,
+      order: [['id', 'DESC']], // ensures correct opening stock
+      transaction,
     });
 
-    const openingStock = latestStock ? latestStock.closingStock : 0;
-    const closingStock = openingStock + params.stockIn - params.stockOut;
+    // 2. Use Decimal for accurate calculations
+    const openingStock = new Decimal(latestStock?.closingStock ?? 0);
+    const stockIn = new Decimal(params.stockIn);
+    const stockOut = new Decimal(params.stockOut);
 
+    // 3. Calculate closing stock
+    const closingStock = openingStock.plus(stockIn).minus(stockOut);
+
+    // 4. Insert new stock log record
     await this.whStockLogModel.create(
       {
         warehouseId: params.warehouseId,
-        date: params.date,
         productId: params.productId,
-        openingStock,
-        stockIn: params.stockIn,
-        stockOut: params.stockOut,
-        closingStock,
+        date: params.date,
+        openingStock: openingStock.toNumber(),
+        stockIn: stockIn.toNumber(),
+        stockOut: stockOut.toNumber(),
+        closingStock: closingStock.toNumber(),
         referenceType: params.referenceType,
         referenceId: params.referenceId,
         transportId: params.transportId,
         notes: params.notes,
         createdBy: params.createdBy,
       },
-      { transaction: params.transaction },
+      { transaction },
     );
   }
 
@@ -558,9 +567,11 @@ export class StockTransfersService {
       // Validate products exist
       await this.validateProducts(transferDto.items, transaction);
 
+      // Unique transfer ID
       const transferId = Date.now();
 
       for (const item of transferDto.items) {
+        // Auto opening & closing handled inside updateDistributionHouseStock()
         await this.updateDistributionHouseStock({
           distributionHouseId: transferDto.distributionHouseId,
           productId: item.productId,
@@ -570,7 +581,9 @@ export class StockTransfersService {
           referenceType: 'Purchase',
           referenceId: transferId,
           transportId: undefined,
-          notes: `${transferDto.purchaseOrderNumber} - ${transferDto.supplierName} - ${transferDto.notes || 'Purchase transfer'}`,
+          notes: `${transferDto.purchaseOrderNumber} - ${transferDto.supplierName} - ${
+            transferDto.notes || 'Purchase transfer'
+          }`,
           createdBy: transferDto.createdBy,
           transaction,
         });

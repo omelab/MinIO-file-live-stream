@@ -21,11 +21,11 @@ import { User } from '../../users/model/user.model';
 export class RefreshToken extends Model<RefreshToken> {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare id: number;
 
   @ForeignKey(() => User)
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare userId: number;
 
   @Index

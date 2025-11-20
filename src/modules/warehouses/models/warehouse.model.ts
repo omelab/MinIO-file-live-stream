@@ -24,7 +24,7 @@ export class Warehouse extends Model<
 > {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare warehouseId: number;
 
   @Column({

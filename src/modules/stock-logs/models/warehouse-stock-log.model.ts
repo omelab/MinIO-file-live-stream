@@ -20,18 +20,18 @@ import { Warehouse } from '../../warehouses/models/warehouse.model';
 export class WarehouseStockLog extends Model {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare id: number;
 
   @ForeignKey(() => Warehouse)
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare warehouseId: number;
 
   @Column(DataType.DATE)
   declare date: Date;
 
   @ForeignKey(() => Product)
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare productId: number;
 
   @Column({
@@ -61,17 +61,17 @@ export class WarehouseStockLog extends Model {
   @Column(DataType.STRING(50))
   declare referenceType: string;
 
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare referenceId: number;
 
   @ForeignKey(() => Transport)
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare transportId: number;
 
   @Column(DataType.TEXT)
   declare notes: string;
 
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare createdBy: number;
 
   @CreatedAt

@@ -9,7 +9,7 @@ import {
 import { StockReportsService } from './stock-reports.service';
 
 @ApiTags('Stock Reports')
-@ApiBearerAuth('access-token')
+@ApiBearerAuth()
 @Controller('stock-reports')
 export class StockReportsController {
   constructor(private readonly stockReportsService: StockReportsService) {}

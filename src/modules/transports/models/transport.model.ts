@@ -24,7 +24,7 @@ export class Transport extends Model<
 > {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare transportId: number;
 
   @Column({

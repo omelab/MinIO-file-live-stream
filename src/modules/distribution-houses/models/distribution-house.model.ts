@@ -31,7 +31,7 @@ export class DistributionHouse extends Model<
 > {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER)
+  @Column(DataType.BIGINT)
   declare distributionHouseId: number;
 
   @Column({
